@@ -1,0 +1,31 @@
+{
+  "name": "event-ticketing-system",
+  "version": "1.0.0",
+  "description": "Event Ticketing System - Full Stack Application",
+  "private": true,
+  "scripts": {
+    "build:frontend": "cd frontend && npm run build",
+    "build:infra": "cd infra && npm run build",
+    "build": "npm run build:frontend && npm run build:infra",
+    "config:frontend": "node scripts/update-frontend-config.js",
+    "test:connection": "node scripts/test-backend-connection.js",
+    "deploy:frontend": "npm run build:frontend && cd infra && npx cdk deploy EventTicketingStackFrontendStack8E3A3C69",
+    "deploy:backend": "cd infra && npm run clean:verify && npx cdk deploy EventTicketingStackDatabaseStack8C978210 EventTicketingStackAuthStack8C9D77AA EventTicketingStackApiStackD88CF0AB EventTicketingStackApiDocsStack --outputs-file ../cdk-outputs.json && npm run config:frontend",
+    "deploy:infra": "cd infra && npm run clean:vefiry && npx cdk deploy --all --outputs-file ../cdk-outputs.json && npm run config:frontend",
+    "deploy": "npm run build:frontend && cd infra && npm run clean:verify && npx cdk deploy --all --outputs-file ../cdk-outputs.json && cd .. && npm run config:frontend",
+    "dev:frontend": "cd frontend && npm run dev",
+    "clean:frontend": "cd frontend && rm -rf dist",
+    "clean:infra": "cd infra && npm run clean",
+    "clean": "npm run clean:frontend && npm run clean:infra",
+    "install:all": "npm install && cd frontend && npm install && cd ../infra && npm install"
+  },
+  "keywords": [
+    "event-ticketing",
+    "aws",
+    "cdk",
+    "react",
+    "serverless"
+  ],
+  "author": "",
+  "license": "MIT"
+}

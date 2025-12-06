@@ -1,0 +1,437 @@
+# Implementation Plan
+
+- [x] 1. Set up AWS CDK infrastructure foundation
+  - Create CDK stack structure with separate constructs for frontend, API, database, auth, and email
+  - Configure DynamoDB tables with partition keys, sort keys, and GSIs for Users, Events, and Registrations
+  - Set up Cognito User Pool with email verification and JWT token configuration
+  - Configure S3 buckets for frontend hosting and cover photo storage with encryption
+  - Set up CloudFront distribution with S3 origin and HTTPS enforcement
+  - Configure SES for email sending with verified sender address
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 10.1, 10.2, 10.3_
+
+- [x] 2. Implement authentication system
+  - [x] 2.1 Create user registration Lambda function
+    - Implement handler to create Cognito users and DynamoDB user records
+    - Add email validation and password strength checks
+    - Handle duplicate email detection
+    - _Requirements: 1.1, 1.2, 1.4_
+  - [x] 2.2 Write property test for user registration
+    - **Property 1: User registration creates unique accounts**
+    - **Property 2: Duplicate email rejection**
+    - **Property 4: Email as unique identifier**
+    - **Validates: Requirements 1.1, 1.2, 1.4**
+  - [x] 2.3 Create login Lambda function
+    - Implement Cognito authentication flow
+    - Return JWT tokens on successful authentication
+    - Handle invalid credentials
+    - _Requirements: 1.3, 1.5_
+  - [x] 2.4 Write property test for authentication
+    - **Property 3: Valid credentials grant access**
+    - **Property 5: Authentication token issuance**
+    - **Validates: Requirements 1.3, 1.5**
+  - [x] 2.5 Set up API Gateway with Cognito authorizer
+    - Configure REST API with CORS
+    - Add Cognito authorizer for protected endpoints
+    - Create auth endpoints (POST /auth/register, POST /auth/login)
+    - _Requirements: 1.3, 1.5_
+
+- [x] 3. Implement event management system
+  - [x] 3.1 Create event CRUD Lambda functions
+    - Implement createEvent handler with DynamoDB writes
+    - Implement getEvent handler with DynamoDB queries
+    - Implement updateEvent handler with authorization checks
+    - Implement listEvents handler with pagination
+    - Add input validation for all event fields
+    - _Requirements: 2.1, 2.4, 2.5_
+  - [ ]* 3.2 Write property tests for event operations
+    - **Property 6: Event creation persists all fields**
+    - **Property 9: Invalid event data rejection**
+    - **Property 10: Event updates persist changes**
+    - **Property 22: Event detail retrieval**
+    - **Validates: Requirements 2.1, 2.4, 2.5, 5.3**
+  - [x] 3.3 Implement event publishing logic
+    - Add status field management (draft/published/cancelled)
+    - Implement visibility filtering for public listings
+    - _Requirements: 2.2_
+  - [ ]* 3.4 Write property test for event publishing
+    - **Property 7: Published events are publicly visible**
+    - **Validates: Requirements 2.2**
+  - [x] 3.4 Implement cover photo upload with presigned URLs
+    - Create Lambda function to generate S3 presigned URLs
+    - Add API endpoint POST /uploads/presigned-url
+    - Store photo URLs in event records
+    - _Requirements: 2.3_
+  - [ ]* 3.5 Write property test for cover photo association
+    - **Property 8: Cover photo storage and association**
+    - **Validates: Requirements 2.3**
+  - [x] 3.6 Add API Gateway endpoints for events
+    - POST /events (create)
+    - GET /events (list with pagination)
+    - GET /events/{eventId} (get details)
+    - PUT /events/{eventId} (update)
+    - DELETE /events/{eventId} (delete)
+    - _Requirements: 2.1, 2.2, 2.5_
+
+- [x] 4. Implement capacity management
+  - [x] 4.1 Add capacity tracking to event model
+    - Store capacity and registeredCount fields
+    - Implement capacity calculation logic
+    - _Requirements: 3.1, 3.4_
+  - [ ]* 4.2 Write property test for capacity storage
+    - **Property 11: Capacity value storage**
+    - **Property 13: Registration count accuracy**
+    - **Validates: Requirements 3.1, 3.4**
+  - [x] 4.3 Implement capacity enforcement with conditional writes
+    - Add DynamoDB conditional write expressions
+    - Check capacity before registration
+    - Return capacity-reached errors
+    - _Requirements: 3.2, 3.3, 3.5, 10.4_
+  - [ ]* 4.4 Write property tests for capacity enforcement
+    - **Property 12: Capacity enforcement prevents over-registration**
+    - **Property 14: Concurrent registration safety**
+    - **Validates: Requirements 3.2, 3.3, 3.5**
+
+- [x] 5. Implement registration and ticketing system
+  - [x] 5.1 Create registration Lambda function
+    - Implement registration creation with user-event linking
+    - Add capacity check before registration
+    - Increment event registeredCount atomically
+    - _Requirements: 4.1, 10.3_
+  - [ ]* 5.2 Write property test for registration creation
+    - **Property 15: Registration creates linked record**
+    - **Validates: Requirements 4.1**
+  - [x] 5.3 Implement QR code generation
+    - Install QR code library (qrcode npm package)
+    - Generate unique QR codes with registration IDs
+    - Store QR code data in registration records
+    - _Requirements: 4.2_
+  - [ ]* 5.4 Write property test for QR code uniqueness
+    - **Property 16: QR code uniqueness**
+    - **Validates: Requirements 4.2**
+  - [x] 5.5 Create digital ticket generation logic
+    - Build ticket data structure with event and attendee info
+    - Include QR code in ticket
+    - _Requirements: 4.3_
+  - [ ]* 5.6 Write property test for ticket completeness
+    - **Property 17: Ticket completeness**
+    - **Validates: Requirements 4.3**
+  - [x] 5.7 Implement ticket email delivery with SES
+    - Create email template for tickets
+    - Send ticket email after registration
+    - Handle SES errors with retries
+    - _Requirements: 4.4_
+  - [ ]* 5.8 Write property test for email delivery
+    - **Property 18: Ticket email delivery**
+    - **Validates: Requirements 4.4**
+  - [x] 5.9 Create ticket retrieval endpoints
+    - Implement getUserRegistrations handler
+    - Implement getRegistration handler with ticket data
+    - Add API endpoints GET /registrations/me and GET /registrations/{registrationId}
+    - _Requirements: 4.5_
+  - [ ]* 5.10 Write property test for ticket retrieval
+    - **Property 19: User ticket retrieval**
+    - **Validates: Requirements 4.5**
+  - [x] 5.11 Add registration API endpoint
+    - POST /events/{eventId}/register
+    - _Requirements: 4.1_
+
+- [x] 6. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 7. Implement event discovery and search
+  - [x] 7.1 Create event listing with filtering
+    - Implement query for published events
+    - Add pagination support
+    - Include capacity status in response
+    - _Requirements: 5.1, 5.4_
+  - [ ]* 7.2 Write property tests for event listing
+    - **Property 20: Event listing completeness**
+    - **Property 23: Capacity indication in listings**
+    - **Validates: Requirements 5.1, 5.4**
+  - [x] 7.3 Implement event search functionality
+    - Add search query parameter handling
+    - Filter events by title and description
+    - _Requirements: 5.2_
+  - [ ]* 7.4 Write property test for search
+    - **Property 21: Search result relevance**
+    - **Validates: Requirements 5.2**
+  - [x] 7.5 Add event date sorting
+    - Sort events by eventDate in ascending order
+    - _Requirements: 5.5_
+  - [ ]* 7.6 Write property test for sorting
+    - **Property 24: Event date sorting**
+    - **Validates: Requirements 5.5**
+  - [x] 7.7 Update API endpoint GET /events with search and sort
+    - Add query parameter ?q={query}
+    - _Requirements: 5.2, 5.5_
+
+- [x] 8. Implement organizer dashboard
+  - [x] 8.1 Create organizer event listing
+    - Query events by organizerId using GSI
+    - Filter to show only user's events
+    - _Requirements: 6.1_
+  - [ ]* 8.2 Write property test for organizer filtering
+    - **Property 25: Organizer event filtering**
+    - **Validates: Requirements 6.1**
+  - [x] 8.3 Implement attendee list retrieval
+    - Query registrations by eventId using GSI
+    - Include user details (name, email) in response
+    - Add registration timestamps
+    - _Requirements: 6.2, 6.4_
+  - [ ]* 8.4 Write property tests for attendee management
+    - **Property 26: Attendee list completeness**
+    - **Property 27: Registration timestamp display**
+    - **Validates: Requirements 6.2, 6.4**
+  - [x] 8.5 Create attendee data export functionality
+    - Generate CSV format with attendee data
+    - Return downloadable file
+    - _Requirements: 6.5_
+  - [ ]* 8.6 Write property test for data export
+    - **Property 28: Attendee data export**
+    - **Validates: Requirements 6.5**
+  - [x] 8.7 Add organizer API endpoints
+    - GET /events/{eventId}/attendees
+    - GET /events/{eventId}/attendees/export
+    - _Requirements: 6.2, 6.5_
+
+- [ ] 9. Implement notification system
+  - [ ] 9.1 Create notification Lambda function
+    - Query all registrations for an event
+    - Compose email with updated event details
+    - Send bulk emails via SES
+    - _Requirements: 7.1, 7.2, 7.5_
+  - [ ]* 9.2 Write property tests for notifications
+    - **Property 29: Bulk notification delivery**
+    - **Property 30: Notification email content**
+    - **Validates: Requirements 7.1, 7.2, 7.5**
+  - [ ] 9.3 Add notification confirmation response
+    - Return success confirmation to organizer
+    - _Requirements: 7.3_
+  - [ ]* 9.4 Write property test for confirmation
+    - **Property 31: Notification confirmation**
+    - **Validates: Requirements 7.3**
+  - [ ] 9.5 Add notification API endpoint
+    - POST /events/{eventId}/notify
+    - _Requirements: 7.1_
+
+- [ ] 10. Implement QR code validation system
+  - [ ] 10.1 Create QR validation Lambda function
+    - Decode QR code data to extract registration ID
+    - Query registration from DynamoDB
+    - Validate registration exists and is active
+    - _Requirements: 8.1_
+  - [ ]* 10.2 Write property test for QR validation
+    - **Property 32: QR code validation**
+    - **Validates: Requirements 8.1**
+  - [ ] 10.3 Build validation response with complete data
+    - Include attendee name, event details, registration status
+    - _Requirements: 8.2_
+  - [ ]* 10.4 Write property test for validation response
+    - **Property 33: Valid QR response completeness**
+    - **Validates: Requirements 8.2**
+  - [ ] 10.5 Add invalid QR code handling
+    - Detect malformed or non-existent registration IDs
+    - Return appropriate error messages
+    - _Requirements: 8.3_
+  - [ ]* 10.6 Write property test for invalid QR rejection
+    - **Property 34: Invalid QR rejection**
+    - **Validates: Requirements 8.3**
+  - [ ] 10.7 Implement check-in status update
+    - Update registration status to 'checked-in'
+    - Store check-in timestamp
+    - _Requirements: 8.4_
+  - [ ]* 10.8 Write property test for check-in update
+    - **Property 35: Check-in status update**
+    - **Validates: Requirements 8.4**
+  - [ ] 10.9 Add duplicate check-in detection
+    - Check if already checked-in
+    - Return original timestamp with warning
+    - _Requirements: 8.5_
+  - [ ]* 10.10 Write property test for duplicate detection
+    - **Property 36: Duplicate check-in detection**
+    - **Validates: Requirements 8.5**
+  - [ ] 10.11 Add validation API endpoint
+    - POST /registrations/{registrationId}/validate
+    - _Requirements: 8.1_
+
+- [ ] 11. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 12. Build React frontend foundation
+  - [x] 12.1 Set up React project structure
+    - Configure TypeScript, Vite, React Router
+    - Set up folder structure (pages, components, services, types)
+    - Install dependencies (axios, react-router-dom, @aws-amplify/auth)
+    - _Requirements: 9.2_
+  - [x] 12.2 Create API client service
+    - Implement axios client with base URL configuration
+    - Add authentication interceptor for JWT tokens
+    - Add error handling interceptor
+    - _Requirements: 1.5_
+  - [x] 12.3 Create authentication service
+    - Integrate with Cognito for login/register/logout
+    - Implement token storage and refresh logic
+    - _Requirements: 1.1, 1.3, 1.5_
+  - [x] 12.4 Create TypeScript interfaces for all data models
+    - Define User, Event, Registration, Ticket interfaces
+    - Match backend API response schemas
+    - _Requirements: All_
+
+- [x] 13. Implement authentication UI
+  - [x] 13.1 Create RegisterPage component
+    - Build registration form with email and password fields
+    - Add form validation
+    - Call authService.register on submit
+    - Display error messages
+    - _Requirements: 1.1, 1.2_
+  - [x] 13.2 Create LoginPage component
+    - Build login form with email and password fields
+    - Call authService.login on submit
+    - Redirect to home on success
+    - Display error messages
+    - _Requirements: 1.3_
+  - [x] 13.3 Add authentication routing
+    - Protect routes requiring authentication
+    - Redirect unauthenticated users to login
+    - _Requirements: 1.3_
+
+- [x] 14. Implement event browsing UI
+  - [x] 14.1 Create HomePage with event listings
+    - Fetch events from GET /events
+    - Display events in grid layout
+    - Show event title, date, venue, cover photo
+    - Indicate full events
+    - _Requirements: 5.1, 5.4_
+  - [x] 14.2 Create EventCard component
+    - Display event information
+    - Show capacity indicator
+    - Add "View Details" button
+    - _Requirements: 5.1, 5.4_
+  - [x] 14.3 Add SearchBar component
+    - Input field for search query
+    - Call GET /events/search?q={query}
+    - Update event list with results
+    - _Requirements: 5.2_
+  - [x] 14.4 Create EventDetailsPage
+    - Fetch event details from GET /events/{eventId}
+    - Display complete event information
+    - Add "Register" button
+    - Disable button if event is full
+    - _Requirements: 5.3, 3.2_
+
+- [x] 15. Implement event creation UI
+  - [x] 15.1 Create CreateEventPage component
+    - Build form with all event fields (title, description, date, venue, contact, capacity)
+    - Add form validation
+    - _Requirements: 2.1, 2.4_
+  - [x] 15.2 Implement cover photo upload
+    - Request presigned URL from POST /uploads/presigned-url
+    - Upload image to S3 using presigned URL
+    - Store S3 URL in form state
+    - _Requirements: 2.3_
+  - [x] 15.3 Submit event creation
+    - Call POST /events with form data
+    - Redirect to organizer dashboard on success
+    - Display validation errors
+    - _Requirements: 2.1, 2.5_
+
+- [x] 16. Implement registration and ticketing UI
+  - [x] 16.1 Add registration functionality to EventDetailsPage
+    - Call POST /events/{eventId}/register on button click
+    - Handle capacity errors
+    - Redirect to MyTicketsPage on success
+    - _Requirements: 4.1, 3.2_
+  - [x] 16.2 Create MyTicketsPage
+    - Fetch user registrations from GET /registrations/me
+    - Display list of registered events
+    - _Requirements: 4.5_
+  - [x] 16.3 Create TicketDisplay component
+    - Show event details
+    - Display QR code image
+    - Show registration status
+    - Make mobile-friendly for check-in
+    - _Requirements: 4.3, 4.5_
+
+- [x] 17. Implement organizer dashboard UI
+  - [x] 17.1 Create OrganizerDashboardPage
+    - Fetch organizer's events from GET /events (filtered by user)
+    - Display event list with registration counts
+    - Add "View Attendees" button for each event
+    - _Requirements: 6.1, 3.4_
+  - [x] 17.2 Create AttendeeList component
+    - Fetch attendees from GET /events/{eventId}/attendees
+    - Display table with name, email, registration timestamp
+    - Add export button
+    - _Requirements: 6.2, 6.4_
+  - [x] 17.3 Implement attendee export
+    - Call GET /events/{eventId}/attendees/export
+    - Trigger file download
+    - _Requirements: 6.5_
+  - [x] 17.4 Add notification functionality
+    - Add "Send Update" button on event page
+    - Show modal to compose notification message
+    - Call POST /events/{eventId}/notify
+    - Display confirmation
+    - _Requirements: 7.1, 7.3_
+
+- [x] 18. Add error handling and loading states
+  - [x] 18.1 Create error boundary component
+    - Catch React errors
+    - Display user-friendly error messages
+    - _Requirements: All_
+  - [x] 18.2 Add loading spinners
+    - Show loading state during API calls
+    - Add skeleton loaders for content
+    - _Requirements: All_
+  - [x] 18.3 Implement toast notifications
+    - Show success/error messages for actions
+    - Auto-dismiss after timeout
+    - _Requirements: All_
+
+- [x] 19. Implement responsive design and styling
+  - [x] 19.1 Add CSS framework (Tailwind CSS)
+    - Configure Tailwind in Vite project
+    - Set up design system (colors, spacing, typography)
+    - _Requirements: All_
+  - [x] 19.2 Make all pages mobile-responsive
+    - Test on mobile viewport sizes
+    - Adjust layouts for small screens
+    - Ensure QR codes are scannable on mobile
+    - _Requirements: 4.5_
+  - [x] 19.3 Add accessibility features
+    - Ensure keyboard navigation works
+    - Add ARIA labels
+    - Test with screen readers
+    - _Requirements: All_
+
+- [ ] 20. Final checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 21. Deploy and configure production environment
+  - [ ] 21.1 Configure production CDK stack
+    - Set production environment variables
+    - Configure custom domain for CloudFront
+    - Set up production Cognito user pool
+    - Verify SES out of sandbox mode
+    - _Requirements: 9.1, 9.2, 9.3_
+  - [ ] 21.2 Deploy infrastructure to AWS
+    - Run cdk deploy for all stacks
+    - Verify all resources created successfully
+    - Test API endpoints
+    - _Requirements: 9.1, 9.2, 9.3, 9.4_
+  - [ ] 21.3 Build and deploy frontend
+    - Build React app for production
+    - Upload bundle to S3
+    - Invalidate CloudFront cache
+    - _Requirements: 9.2, 9.3_
+  - [ ] 21.4 Configure monitoring and alarms
+    - Set up CloudWatch dashboards
+    - Create alarms for error rates
+    - Set up cost budget alerts
+    - _Requirements: 9.5_
+  - [ ]* 21.5 Run end-to-end smoke tests
+    - Test complete user registration flow
+    - Test event creation and registration flow
+    - Test QR code validation
+    - Verify email delivery
+    - _Requirements: All_

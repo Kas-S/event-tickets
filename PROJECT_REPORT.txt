@@ -1,0 +1,171 @@
+EVENT TICKETING SYSTEM - PROJECT REPORT
+========================================
+
+1. INTRODUCTION
+---------------
+The Event Ticketing System is a full-stack serverless application that enables event organizers to create and manage events while allowing attendees to discover, register, and receive digital tickets with QR codes. Built entirely on AWS infrastructure using modern web technologies, the system operates within AWS Free Tier limits, making it cost-effective for small to medium-scale deployments.
+
+The platform features email-based authentication via AWS Cognito, event creation with cover photo uploads, public event browsing, registration management with capacity enforcement, and automated email notifications. The architecture leverages React 19 with TypeScript for the frontend, AWS Lambda functions for serverless compute, DynamoDB for data persistence, and AWS CDK for infrastructure as code.
+
+Key technologies include: React 19 + Vite 7 (frontend), Node.js 20.x + TypeScript 5.6 (backend), AWS Lambda + API Gateway (API layer), DynamoDB (database), Cognito (authentication), S3 + CloudFront (hosting/CDN), and SES (email notifications).
+
+
+2. DATABASE SCHEMA AND ER DIAGRAM
+----------------------------------
+The system uses DynamoDB with a single-table design pattern optimized for serverless access patterns. Three main tables store application data:
+
+USERS TABLE:
+- Primary Key: PK (USER#userId), SK (PROFILE)
+- Attributes: userId, email, name, createdAt, updatedAt
+- GSI: EmailIndex (email, userId) - enables user lookup by email
+
+EVENTS TABLE:
+- Primary Key: PK (EVENT#eventId), SK (METADATA)
+- Attributes: eventId, organizerId, title, description, coverPhotoUrl, eventDate, venue (name, address, city, state, zipCode), contactInfo (email, phone), capacity, registeredCount, status, createdAt, updatedAt
+- GSI: OrganizerIndex (organizerId, eventDate) - queries events by organizer
+- GSI: StatusDateIndex (status, eventDate) - queries published events chronologically
+
+REGISTRATIONS TABLE:
+- Primary Key: PK (REGISTRATION#registrationId), SK (METADATA)
+- Attributes: registrationId, eventId, userId, userName, userEmail, ticketNumber, qrCode, status, registeredAt
+- GSI: UserRegistrationIndex (userId, createdAt) - user's ticket history
+- GSI: EventRegistrationIndex (eventId, createdAt) - event attendee lists
+
+Entity Relationships:
+- Users (1) → (N) Events: One user can organize multiple events
+- Events (1) → (N) Registrations: One event has multiple registrations
+- Users (1) → (N) Registrations: One user can register for multiple events
+
+
+3. CODE SNIPPETS AND EXPLANATIONS
+----------------------------------
+A. Event Creation Lambda (infra/lib/lambdas/events/createEvent.ts):
+This Lambda function handles POST requests to create new events. It validates the request body using TypeScript type guards, checks authentication via Cognito JWT claims, validates event data (future dates, positive capacity, valid email), generates a unique event ID, and stores the event in DynamoDB. The function returns a 201 status with the created event details or appropriate error responses (400 for validation errors, 401 for unauthorized, 500 for server errors).
+
+Key validation logic:
+- Event date must be in the future
+- Capacity must be a positive integer
+- Contact email must match regex pattern
+- All required fields (title, description, venue, etc.) must be present
+
+B. User Registration Lambda (infra/lib/lambdas/auth/register.ts):
+Handles user registration by validating email format and password strength (minimum 8 characters, uppercase, lowercase, digit), checking for duplicate emails in DynamoDB, creating a Cognito user with SignUpCommand, auto-confirming the user for development, and storing user profile in DynamoDB. Returns 201 on success, 409 for duplicate emails, 400 for validation errors.
+
+Password requirements enforced:
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter  
+- At least one digit
+
+C. Database Stack (infra/lib/database-stack.ts):
+Defines three DynamoDB tables using AWS CDK with provisioned billing mode (3 RCU/WCU to stay within Free Tier), point-in-time recovery enabled, and encryption at rest. Each table includes relevant Global Secondary Indexes for efficient query patterns. The stack exports table names as CloudFormation outputs for use by other stacks.
+
+D. Frontend Authentication Service (frontend/src/services/authService.ts):
+Provides a centralized authentication service that interfaces with AWS Cognito via API Gateway. Handles login, registration, logout, token management in localStorage, and automatic token refresh. The service maintains authentication state and provides methods for checking if users are authenticated.
+
+
+4. SCREENSHOTS OF WORKING FEATURES
+-----------------------------------
+[SCREENSHOT 1: Homepage - Event Discovery]
+Description: Shows the main landing page with a grid of published events, each displaying cover photo, title, date, venue, and available spots. Navigation header includes Login/Register buttons.
+
+[SCREENSHOT 2: User Registration Page]
+Description: Registration form with fields for name, email, and password. Shows validation messages for password requirements and email format.
+
+[SCREENSHOT 3: Login Page]
+Description: Simple login form with email and password fields, "Remember me" checkbox, and link to registration page.
+
+[SCREENSHOT 4: Create Event Page]
+Description: Event creation form with fields for title, description, cover photo upload, event date/time picker, venue information (name, address, city, state, zip), contact info, and capacity. Shows file upload progress for cover photos.
+
+[SCREENSHOT 5: Event Details Page]
+Description: Detailed view of a single event showing large cover photo, full description, venue map, organizer contact info, capacity indicator, and "Register" button. For organizers, shows "Edit" and "Delete" buttons.
+
+[SCREENSHOT 6: My Tickets Page]
+Description: User's registered events displayed as digital tickets with QR codes, event details, and ticket numbers. Shows past and upcoming events separately.
+
+[SCREENSHOT 7: Organizer Dashboard]
+Description: List of events created by the logged-in user with attendee counts, edit/delete actions, and "View Attendees" button. Shows event status (published/draft).
+
+[SCREENSHOT 8: Swagger API Documentation]
+Description: Interactive Swagger UI showing all API endpoints with request/response schemas, authentication requirements, and "Try it out" functionality.
+
+
+5. TESTING AND DEBUGGING PROCESS
+---------------------------------
+The project employs multiple testing strategies:
+
+Unit Testing: Jest 29 with ts-jest for Lambda functions and business logic. Tests cover authentication flows, event CRUD operations, validation logic, and error handling. Property-based testing with fast-check 3 validates edge cases and input combinations.
+
+Integration Testing: Manual testing of API endpoints using Swagger UI. Each Lambda function is tested with valid and invalid inputs to verify error handling and response formats.
+
+Frontend Testing: Manual browser testing across Chrome, Firefox, and Safari. Verified responsive design, form validations, authentication flows, and API integration.
+
+Debugging Approach:
+- CloudWatch Logs for Lambda function debugging
+- Console.error statements in Lambda handlers for error tracking
+- Browser DevTools for frontend debugging
+- Network tab inspection for API request/response validation
+- DynamoDB console for data verification
+
+Common issues resolved:
+- CORS configuration for API Gateway endpoints
+- Cognito token expiration handling
+- DynamoDB capacity throttling (resolved with provisioned capacity)
+- S3 presigned URL expiration timing
+- CloudFront cache invalidation after deployments
+
+
+6. DEPLOYMENT STEPS AND CONFIGURATION
+--------------------------------------
+Prerequisites:
+- Node.js 20+ installed
+- AWS CLI configured with credentials (aws configure)
+- AWS CDK CLI installed globally (npm install -g aws-cdk)
+- Verified email address in Amazon SES for sending notifications
+
+Deployment Process:
+
+Step 1: Install Dependencies
+$ npm run install:all
+Installs dependencies for root workspace, frontend, and infrastructure projects.
+
+Step 2: Configure SES Email
+Edit infra/cdk.json and set "verifiedSenderEmail" to your verified SES email address.
+
+Step 3: Bootstrap CDK (first time only)
+$ cd infra
+$ npx cdk bootstrap
+Creates necessary AWS resources for CDK deployments.
+
+Step 4: Deploy Infrastructure
+$ npm run deploy:backend
+Deploys all AWS resources: Cognito User Pool, DynamoDB tables, Lambda functions, API Gateway, S3 buckets, CloudFront distribution. Takes approximately 10-15 minutes.
+
+Step 5: Update Frontend Configuration
+$ npm run config:frontend
+Automatically extracts API endpoints and Cognito configuration from CDK outputs and updates frontend environment files.
+
+Step 6: Deploy Frontend
+$ npm run deploy:frontend
+Builds React application and uploads to S3, then invalidates CloudFront cache. Takes approximately 2-3 minutes.
+
+Step 7: Access Application
+The deployment outputs the CloudFront URL. Access the application at:
+https://<cloudfront-domain>/
+
+API documentation available at:
+https://<cloudfront-domain>/swagger/
+
+Configuration Files:
+- infra/cdk.json: CDK context and SES email configuration
+- frontend/.env.production: Auto-generated API and Cognito endpoints
+- cdk-outputs.json: Deployment outputs with resource ARNs and URLs
+
+Monitoring and Maintenance:
+- CloudWatch Logs: Monitor Lambda function execution
+- CloudWatch Metrics: Track API Gateway requests, Lambda invocations
+- DynamoDB Metrics: Monitor read/write capacity usage
+- Cost Explorer: Verify Free Tier usage
+
+The entire deployment is automated through npm scripts, making updates as simple as running "npm run deploy" from the root directory.

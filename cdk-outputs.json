@@ -1,0 +1,43 @@
+{
+  "EventTicketingStackDatabaseStack8C978210": {
+    "ExportsOutputRefRegistrationsTable16AC3BA7B61A1E2A": "EventTicketing-Registrations",
+    "ExportsOutputFnGetAttEventsTableD24865E5Arn2808B4A2": "arn:aws:dynamodb:us-east-1:169865926111:table/EventTicketing-Events",
+    "ExportsOutputFnGetAttRegistrationsTable16AC3BA7Arn9CDF010F": "arn:aws:dynamodb:us-east-1:169865926111:table/EventTicketing-Registrations",
+    "ExportsOutputFnGetAttUsersTable9725E9C8Arn5684EF99": "arn:aws:dynamodb:us-east-1:169865926111:table/EventTicketingStackDatabaseStack8C978210-UsersTable9725E9C8-D1V3CK3VMZKK",
+    "UsersTableName": "EventTicketingStackDatabaseStack8C978210-UsersTable9725E9C8-D1V3CK3VMZKK",
+    "ExportsOutputRefEventsTableD24865E55C5ECA9E": "EventTicketing-Events",
+    "RegistrationsTableName": "EventTicketing-Registrations",
+    "EventsTableName": "EventTicketing-Events",
+    "ExportsOutputRefUsersTable9725E9C857961836": "EventTicketingStackDatabaseStack8C978210-UsersTable9725E9C8-D1V3CK3VMZKK"
+  },
+  "EventTicketingStackAuthStack8C9D77AA": {
+    "UserPoolClientId": "1d70qj31n7q6u8oh8ptn61qbil",
+    "ExportsOutputRefEventTicketingUserPoolC97EE33EAB03CFA5": "us-east-1_Rj4eF14Qt",
+    "ExportsOutputRefEventTicketingUserPoolClientCBB3414412C9F6E9": "1d70qj31n7q6u8oh8ptn61qbil",
+    "UserPoolId": "us-east-1_Rj4eF14Qt",
+    "UserPoolArn": "arn:aws:cognito-idp:us-east-1:169865926111:userpool/us-east-1_Rj4eF14Qt",
+    "ExportsOutputFnGetAttEventTicketingUserPoolC97EE33EArn6B07DF3F": "arn:aws:cognito-idp:us-east-1:169865926111:userpool/us-east-1_Rj4eF14Qt"
+  },
+  "EventTicketingStackFrontendStack8E3A3C69": {
+    "WebsiteBucketName": "event-ticketing-frontend-169865926111",
+    "DeploymentNote": "Frontend automatically deployed from ../frontend/dist",
+    "WebsiteURL": "https://d37vip2ycswuby.cloudfront.net",
+    "DistributionId": "EBL4XMZLWI8LV",
+    "ExportsOutputRefWebsiteBucket75C24D94B5689ED3": "event-ticketing-frontend-169865926111",
+    "CoverPhotoBucketName": "event-ticketing-photos-169865926111",
+    "DistributionDomainName": "d37vip2ycswuby.cloudfront.net",
+    "ExportsOutputRefCoverPhotoBucketD5D00E6DDF9E674A": "event-ticketing-photos-169865926111"
+  },
+  "EventTicketingStackApiStackD88CF0AB": {
+    "ApiUrl": "https://ih96qhiy5g.execute-api.us-east-1.amazonaws.com/prod/",
+    "ExportsOutputRefEventTicketingApi96A9EA1784972DD0": "ih96qhiy5g",
+    "ApiId": "ih96qhiy5g",
+    "ApiStage": "prod",
+    "EventTicketingApiEndpointE21C9856": "https://ih96qhiy5g.execute-api.us-east-1.amazonaws.com/prod/",
+    "ExportsOutputRefEventTicketingApiDeploymentStageprodA18B6D3F336DF8F5": "prod"
+  },
+  "EventTicketingStackApiDocsStack": {
+    "OpenApiSpecUrl": "https://event-ticketing-frontend-169865926111.s3.us-east-1.amazonaws.com/swagger/openapi.json",
+    "SwaggerUIUrl": "Available at /swagger on the CloudFront distribution"
+  }
+}

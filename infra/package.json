@@ -1,0 +1,57 @@
+{
+  "name": "infra",
+  "version": "0.1.0",
+  "bin": {
+    "infra": "bin/infra.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk",
+    "clean": "find lib bin -type f \\( -name '*.js' -o -name '*.d.ts' \\) -delete && echo 'Cleaned up .js and .d.ts files'",
+    "clean:verify": "npm run build && npm run clean && echo 'Build verified and cleaned successfully'",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/jest": "^29.5.14",
+    "@types/node": "22.7.9",
+    "@typescript-eslint/eslint-plugin": "^8.48.0",
+    "@typescript-eslint/parser": "^8.48.0",
+    "aws-cdk": "2.1029.1",
+    "aws-sdk-client-mock": "^4.0.0",
+    "esbuild": "^0.27.1",
+    "eslint": "^9.39.1",
+    "fast-check": "^3.15.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.6.3",
+    "typescript-eslint": "^8.48.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-api-gateway": "^3.0.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.0.0",
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/client-ses": "^3.946.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0",
+    "@types/aws-lambda": "^8.10.0",
+    "@types/qrcode": "^1.5.6",
+    "aws-cdk-lib": "2.214.0",
+    "constructs": "^10.0.0",
+    "qrcode": "^1.5.4"
+  },
+  "description": "This directory contains the AWS CDK infrastructure code for the Event Ticketing System. The infrastructure is organized into separate stacks for modularity and maintainability.",
+  "main": "jest.config.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
